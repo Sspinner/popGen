@@ -67,7 +67,7 @@ class Genome(tuple):
 
 class species(defaultdict):
     '''
-    Represents a species as a dict whose keys are Genome objects and
+    Represents an hermaphroditic species as a dict whose keys are Genome objects and
     whose values are integers representing the population of that Genome in the species
     '''
     def __init__(self, genome_dict):
