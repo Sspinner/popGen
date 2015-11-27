@@ -65,7 +65,7 @@ class Genome(tuple):
         # Note: the * is required to turn the list into a list of args
         return Genome(*[s.mate(o) for (s,o) in zip(self,other)])
 
-class species(defaultdict):
+class Species(defaultdict):
     '''
     Represents an hermaphroditic species as a dict whose keys are Genome objects and
     whose values are integers representing the population of that Genome in the species
@@ -78,7 +78,7 @@ class species(defaultdict):
         '''
         assert all(isinstance(g, Genome) for g in genome_dict)
         # Pass genome_dict to the defaultdict __init__ method specifying int factory
-        super(species, self).__init__(int, genome_dict)
+        super(Species, self).__init__(int, genome_dict)
     def population(self):
         return sum(self.values())
     def genome_frequencies(self):
@@ -100,7 +100,7 @@ class species(defaultdict):
         return { al:cnt/total for al,cnt in self.allele_counts(locus).items() }
     def mate(self):
         # make a working copy of the species object
-        s = species(self) 
+        s = Species(self) 
         while s.population() >= 2:
             # randomly choose one genome from copy and decrement population in copy
             g1 = weighted_choice(s.items())
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     g1 = Gene(1,1);  g2 = Gene(2,2)
     genome1 = Genome(g1)
     genome2 = Genome(g2)
-    sp0 = species({genome1:1, genome2:1})
+    sp0 = Species({genome1:1, genome2:1})
     assert sp0.population() == 2
     assert sp0.genome_frequencies() == {genome1: 0.5, genome2: 0.5}
     assert sp0.allele_counts() == defaultdict(int, {1: 2, 2: 2})
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     trials = 10
     generations = 10
     for n in range(trials):
-        sp0 = species({genome1:23, genome2:11})
+        sp0 = Species({genome1:23, genome2:11})
         for i in range(generations):
             sp0.mate()
         print(sp0.population())
