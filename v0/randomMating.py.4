@@ -1,0 +1,139 @@
+import copy
+import numpy as np
+import random
+import string
+import sys
+from collections import defaultdict
+from bisect import bisect
+
+def weighted_choice(choices):
+    ''' Returns a randomly chosen value from the weighted distribution, choices.
+    Choices is an iterable containing tuples of values and integer weights,
+    ( (v1,w1), (v2,w2), ...) '''
+    values, weights = zip(*choices)
+    total = 0
+    cum_weights = []
+    for w in weights:
+        total += w
+        cum_weights.append(total)
+    x = random.random() * total
+    i = bisect(cum_weights, x)
+    return values[i]
+
+class gene(tuple):
+    ''' diploid gene (genotype) implemented as a 2-tuple
+	g = gene(5,4) --> (4,5)
+    '''
+    def __init__(self, *allele_pair):
+        '''allele_pair a 2-tuple of integers'''
+        assert len(allele_pair) == 2
+        assert all(isinstance(n, int) for n in allele_pair)
+        # equiv:  assert all(type(n) is int for n in allele_pair)
+        self.data = tuple(sorted(allele_pair))
+    def allele_count(self):
+        return { k:self.data.count(k) for k in self.data }
+    def mate(self, other):
+        '''
+        Given genes (a1, a2) and (a3, a4) randomly return one of the four alternatives:
+            (a1, a3), (a1, a4), (a2, a3), (a2, a4)
+        '''
+        # sorted returns a list -- need to force a tuple
+        return gene(tuple(sorted((random.choice(self.data), random.choice(other.data)))))
+
+class genome(dict):
+    '''
+    A genome object is a dict whose keys are labels identifying each locus in the genome.
+    The value for a given key is the gene object at that locus.
+    --- probably assuming key ordering.  Going back to tuple
+    implementation. 
+    '''
+    def __init__(self, **kwds):
+        '''
+        genome(A=(1,2), B=(1,1)) --> {'A':gene(1,2), 'B':gene(1,1)}
+        '''
+        assert all(isinstance(g, gene) for g in gene_tuple)
+	# use dict update method to initialize dict from keyword arguments
+	self.update(**kwds)
+	# original version took a gene_tuple argument and initialized
+        # as follows:
+        #self.data = dict(zip(string.ascii_uppercase, gene_tuple))
+    def allele_count(self):
+        return [ g.allele_count() for g in self.data ]
+    def mate(self, other):
+        ''' Returns a diploid genome from the random mating of self with other.
+        '''
+        assert isinstance(other, genome)
+        assert len(self) == len(other)
+        return genome([s.mate(o) for (s,o) in zip(self.data.values(),other.data.values())])
+
+class species(dict):
+    '''
+    Represents a species as a dict whose keys are genome objects and
+    whose values are integers representing the population of that genome in the species
+    '''
+    def __init__(self, genome_dict):
+        ''' 
+        genome_dict keys are genome objects; values are integers, representing the number
+        of individuals in the species with that genome.  Internally, store as defaultdict
+        in order to allow easy incrementing as new genomes are created through mating
+        '''
+        # [todo] add code to sort each initial allele pair in the genome dict otherwise
+        # initial unsorted pairs are carried along with subsequent sorted ones: minor detail
+        assert all(isinstance(g, genome) for g in genome_dict)
+        self.genome_counts = defaultdict(int, genome_dict)
+    def __repr__(self):
+        return repr(self.genome_counts)
+    def population(self):
+        return sum(self.genome_counts.values())
+    def genome_frequencies(self):
+        total = float(sum(self.genome_counts.values()))
+        return { g:cnt/total for g,cnt in self.genome_counts.items() }
+    def allele_counts(self, locus=0):
+        ''' Return the distribution of alleles at *locus* across all genomes in the species '''
+        # first collect the allele dists at locus for each genome
+        alleles_by_genome = {g:g.allele_count()[locus] for g in self.genome_counts}
+        # next sum up number of each allele in each genome weighted
+        # by pop of each g in species 
+        allele_sum = defaultdict(int)
+        for g in alleles_by_genome:
+            for allele in alleles_by_genome[g]:
+                allele_sum[allele] += alleles_by_genome[g][allele] * self.genome_counts[g] 
+        return allele_sum
+    def allele_frequencies(self, locus=0):
+        total = float(sum(self.allele_counts(locus).values()))
+        return { al:cnt/total for al,cnt in self.allele_counts(locus).items() }
+    def mate(self):
+        s = copy.deepcopy(self)  # make a working copy of the species object
+        while s.population() >= 2:
+            # randomly choose one genome from copy and decrement population in copy
+            g1 = genome(weighted_choice(s.genome_counts.items()))
+            s.genome_counts[g1] -= 1
+            # randomly choose another genome from copy and decrement copy
+            g2 = genome(weighted_choice(s.genome_counts.items()))
+            s.genome_counts[g2] -= 1
+            # mate g1 and g2 and add offspring to species population
+            offspring = g1.mate(g2)
+            self.genome_counts[offspring] += 1  # defaultdict used here
+
+# Tests
+if __name__ == '__main__':
+    gene1 = gene((1,1));  gene2 = gene((2,2))
+    genome1 = genome((gene1,gene2))
+    sp0 = species({g1:1, g2:1})
+    assert sp0.population() == 2
+    assert sp0.allele_counts() == defaultdict(int, {'A': 2, 'a': 2})
+    assert sp0.allele_frequencies() == {'A': 0.5, 'a': 0.5}
+    sp0.mate()
+    assert sp0.allele_frequencies() == {'A': 0.5, 'a': 0.5}
+    assert sp0.population() == 3
+    assert sp0.allele_counts() == defaultdict(int, {'A': 3, 'a': 3})
+
+    trials = 20
+    generations = 30
+    for n in range(trials):
+        species_0 = species( {genome((('a','a'),)):1, genome((('A','A'),)):1 })
+        for i in range(generations):
+            species_0.mate()
+        print(species_0.allele_frequencies())
+        print(species_0.genome_frequencies())
+

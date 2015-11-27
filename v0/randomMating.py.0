@@ -1,0 +1,58 @@
+import numpy as np
+import random
+import sys
+
+class locus(tuple):
+    ''' diploid locus implemented as a 2-tuple '''
+    def __init__(self, allele_pair_tuple):
+        self.data = allele_pair_tuple
+        assert len(self.data) == 2
+        self.alleles = set(self.data)
+    def mate(self, other):
+        # sorted returns a list -- need a tuple
+        return tuple(sorted((random.choice(self.data), random.choice(other.data))))
+
+class genome(tuple):
+    # single locus genomes don't currently work
+    def __init__(self, loci_tuple):
+        # make sure elements passed in loci_tuple are loci
+        self.loci = map(locus, loci_tuple)
+    def mate(self, other):
+        ''' Returns a genome from the random mating of two diploid genomes.
+        '''
+        assert len(self) == len(other)
+        return genome(locus(s).mate(locus(o)) for (s,o) in zip(self,other))
+        # doesn't work -- zip seems to return bare tuples rather than genomes
+        #return genome(s.mate(o) for (s,o) in zip(self,other))
+
+class species(list):
+    def __init__(self, genome_list):
+        ''' eventually should implement with genome_dict where keys of
+        genome_dict are genome objects, values are integers, representing the number
+        of individuals in the species with that genome
+        '''
+        self.data = genome_list
+        self.pair_dist = { t:self.data.count(t) for t in self.data }
+        self.allele_dist = { t: for t in self
+    def __str__(self):
+        return repr(self.dist)
+    def __repr__(self):
+        return repr(self.dist)
+    def random_mate(self):
+        s = self.data[:]  # make a copy for shuffling
+        random.shuffle(s)
+        s1 = s[0:-1:2] # even half
+        s2 = s[1::2]   # odd half
+        offspring = [ g1.mate(g2) for (g1,g2) in zip(s1,s2)]
+        self.data += offspring
+        self.pair_dist = { t:self.data.count(t) for t in self.data }
+        self.allele_dist = 
+
+trials = 100
+generations = 20
+for n in trials:
+    species_0 = species([ genome((('a','a'),)), genome((('A','A'),)) ])
+    for i in generations:
+        species_0.random_mate()
+    
+
