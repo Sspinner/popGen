@@ -29,7 +29,7 @@ class Gene(tuple):
         need to use __new__. If willing to let constructor be of form Gene((5,4)),
         can implement more typically using __init__
         '''
-        assert len(alleles) == 2
+        assert len(alleles), 2
         assert all(isinstance(al, int) for al in alleles) # alleles are integers
         # sorted returns a list; force it to a tuple.  Rest is just magic
         # cls plays similar role to self here
@@ -112,24 +112,34 @@ class Species(defaultdict):
             offspring = g1.mate(g2)
             self[offspring] += 1  # defaultdict used here
 
-# Tests
-if __name__ == '__main__':
-    g1 = Gene(1,1);  g2 = Gene(2,2)
-    genome1 = Genome(g1)
-    genome2 = Genome(g2)
-    sp0 = Species({genome1:1, genome2:1})
-    assert sp0.population() == 2
-    assert sp0.genome_frequencies() == {genome1: 0.5, genome2: 0.5}
-    assert sp0.allele_counts() == defaultdict(int, {1: 2, 2: 2})
-    assert sp0.allele_frequencies() == {1: 0.5, 2: 0.5}
-    sp0.mate()
-    assert sp0.population() == 3
-    assert sp0.genome_frequencies() == {genome1: 1./3,
+class TestRM(unittest.TestCase):
+    def setUp(self):
+        self.g1 = Gene(1,1)
+        self.g2 = Gene(2,2)
+        self.genome1 = Genome(self.g1)
+        self.genome2 = Genome(self.g2)
+        self.sp0 = Species({self.genome1:1, self.genome2:1})
+    def test_2genotype_2allele(self):
+        sp0 = self.sp0
+        genome1 = self.genome1
+        genome2 = self.genome2
+        self.assertEqual(sp0.population(), 2)
+        self.assertEqual(sp0.genome_frequencies(), {genome1: 0.5, genome2: 0.5})
+        self.assertEqual(sp0.allele_counts(), defaultdict(int, {1: 2, 2: 2}))
+        self.assertEqual(sp0.allele_frequencies(), {1: 0.5, 2: 0.5})
+        sp0.mate()
+        self.assertEqual(sp0.population(), 3)
+        self.assertEqual(sp0.genome_frequencies(), {genome1: 1./3,
                                         Genome((1, 2)): 1./3,
                                         genome2: 1./3}
-    assert sp0.allele_frequencies() == {1: 0.5, 2: 0.5}
-    assert sp0.allele_counts() == defaultdict(int, {1: 3, 2: 3})
+                         )
+        self.assertEqual(sp0.allele_frequencies(), {1: 0.5, 2: 0.5})
+        self.assertEqual(sp0.allele_counts(), defaultdict(int, {1: 3, 2: 3}))
 
+
+# Tests
+if __name__ == '__main__':
+    unittest.main()
     trials = 10
     generations = 10
     for n in range(trials):
